@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\ActionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\WoekerController;
-use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,4 +35,12 @@ route::middleware("auth:api")->group(function () {
     route::post("add_worker", [WoekerController::class, "addWorker"]);
     route::put("edit_worker", [WoekerController::class, "editWorker"]);
     route::delete("delete_worker", [WoekerController::class, "deleteWorker"]);
+
+    route::get("get_logs", [ActionController::class, "getLogs"]);
+    route::get("get_sale_process_workers", [ActionController::class, "getSaleProcessWorkers"]);
+    route::post("sale_process_worker", [ActionController::class, "saleProcessWorker"]);
+    route::post("withdraw_from_box", [ActionController::class, "withdrawFromBox"]);
+
+    route::put("worker_recovery", [ActionController::class, "workerRecovery"]);
+    route::get("show_actions_worker", [WoekerController::class, "showActionsWorker"]);
 });

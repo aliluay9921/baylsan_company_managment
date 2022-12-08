@@ -13,6 +13,12 @@ class WoekerController extends Controller
 {
     use SendResponse, Pagination;
 
+    public function showActionsWorker()
+    {
+        $worker = Worker::with('imports', 'logs')->find($_GET["worker_id"]);
+        return $this->send_response(200, 'تم جلب نشاطات العاملة بنجاح', [], $worker);
+    }
+
     public function getWorkers()
     {
         $workers = Worker::select("*");

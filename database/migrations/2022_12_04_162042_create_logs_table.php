@@ -15,6 +15,7 @@ return new class extends Migration
     {
         Schema::create('logs', function (Blueprint $table) {
             $table->uuid("id")->primary();
+            $table->uuid("target_id")->nullable();
             $table->integer("log_type"); // 0 سحب 1 أضافة
             $table->double("value");
             $table->text("note");
