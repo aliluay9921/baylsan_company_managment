@@ -22,18 +22,24 @@ class ActionController extends Controller
         if (isset($_GET['query'])) {
             $logs->where(function ($q) {
                 $columns = Schema::getColumnListing('logs');
-                $q->whereHas('worker', function ($q) {
-                    $q->where('full_name', 'LIKE', $_GET['query']);
+                $q->orwhereHas('worker', function ($q) {
+                    $q->where('full_name', 'LIKE', '%' . $_GET['query']  . '%');
+                });
+                $q->orwhereHas('employee', function ($q) {
+                    $q->where('full_name', 'LIKE', '%' . $_GET['query']  . '%');
                 });
                 foreach ($columns as $column) {
                     $q->orWhere($column, 'LIKE', '%' . $_GET['query'] . '%');
                 }
             });
         }
-
+        if (isset($_GET['filter'])) {
+            $filter = json_decode($_GET['filter']);
+            $logs->where($filter->name, 'LIKE', '%' . $filter->value . '%');
+        }
         if (isset($_GET)) {
             foreach ($_GET as $key => $value) {
-                if ($key == 'skip' || $key == 'limit' || $key == 'query') {
+                if ($key == 'skip' || $key == 'limit' || $key == 'query' || $key == 'filter') {
                     continue;
                 } else {
                     $sort = $value == 'true' ? 'desc' : 'asc';
@@ -55,7 +61,7 @@ class ActionController extends Controller
             $imports->where(function ($q) {
                 $columns = Schema::getColumnListing('imports');
                 $q->whereHas('worker', function ($q) {
-                    $q->where('full_name', 'LIKE', $_GET['query']);
+                    $q->where('full_name', 'LIKE', '%' . $_GET['query']  . '%');
                 });
                 foreach ($columns as $column) {
                     $q->orWhere($column, 'LIKE', '%' . $_GET['query'] . '%');
@@ -126,7 +132,7 @@ class ActionController extends Controller
         $worker->update([
             "status" => 1
         ]);
-        return $this->send_response(200, "تم عملية بيع عاملة بنجاح", [], Import::find($import->id));
+        return $this->send_response(200, "تم عملية بيع عاملة بنجاح", [], Import::with('worker')->find($import->id));
     }
     public function withdrawFromBox(Request $request)
     {
@@ -153,9 +159,7 @@ class ActionController extends Controller
             "log_type" => 1,
             "target_id" => $request["type"] == 0 ? $request["employee_id"] : null
         ];
-        // if ($request["type"] == 0) {
-        //     $request["target_id"] = $request["employee_id"];
-        // }
+      
         $log = Log::create($data);
         return $this->send_response(200, "تم عملية  سحب أموال بنجاح", [], Log::find($log->id));
     }
@@ -164,10 +168,14 @@ class ActionController extends Controller
     {
         $request = $request->json()->all();
         $validator = Validator::make($request, [
+            "sale_id" => "required|exists:imports,id",
             "worker_id" => "required|exists:workers,id",
             "value" => "required",
             "note" => "required",
         ], [
+            "sale_id.required" => "يجب أدخال العملية المراد استرجاعها",
+            "sale_id.exists" => "العملية التي قمت بأرجاعها غير متوفرة",
+
             "worker_id.required" => "يجب أدخال العاملة المراد استرجاعها",
             "worker_id.exists" => "العاملة التي قمت بأرجاعها غير متوفرة",
             "value.required" => "يجب تحديد قيمة المبلغ المسترد",
@@ -177,10 +185,15 @@ class ActionController extends Controller
             return $this->send_response(400, 'حصل خطأ في المدخلات', $validator->errors(), []);
         }
         $worker = Worker::find($request["worker_id"]);
+        $sale = Import::find($request["sale_id"]);
         if ($worker->status == 0) {
             return $this->send_response(400, "يجب أختيار عاملة مستأجرة", [], []);
         }
+        if ($sale->status == 1) {
+            return $this->send_response(400, "يجب تحديد طلب عند الزبون ليتم ارجاعه", [], []);
+        }
         $worker->update(["status" => 0]);
+        $sale->update(["status" => 1]);
         $data = [
             "value" => $request["value"],
             "note" => $request["note"],
@@ -188,6 +201,6 @@ class ActionController extends Controller
             "target_id" => $request["worker_id"]
         ];
         $log = Log::create($data);
-        return $this->send_response(200, "تم استرجاع العاملة", [], Log::find($log->id));
+        return $this->send_response(200, "تم استرجاع العاملة", [], Import::with("worker")->find($request["sale_id"]));
     }
 }

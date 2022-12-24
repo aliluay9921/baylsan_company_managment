@@ -15,7 +15,10 @@ class WoekerController extends Controller
 
     public function showActionsWorker()
     {
-        $worker = Worker::with('imports', 'logs')->find($_GET["worker_id"]);
+        if (isset($_GET["worker_id"]))
+            $worker = Worker::with('imports', 'logs')->find($_GET["worker_id"]);
+        else
+            $worker = Worker::with('imports', 'logs')->first();
         return $this->send_response(200, 'تم جلب نشاطات العاملة بنجاح', [], $worker);
     }
 
