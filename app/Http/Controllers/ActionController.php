@@ -86,7 +86,6 @@ class ActionController extends Controller
         $res = $this->paging($imports->orderBy("created_at", "desc"),  $_GET['skip'],  $_GET['limit']);
         return $this->send_response(200, 'تم جلب المبيعات بنجاح', [], $res["model"], null, $res["count"]);
     }
-
     public function saleProcessWorker(Request $request)
     {
         $request = $request->json()->all();
@@ -96,6 +95,7 @@ class ActionController extends Controller
             "request_type" => "required",
             "price" => "required",
             "remainder_price" => "required",
+            "received_price" => "required",
         ], [
             "customer_name.required" => "يجب أدخال اسم الزبون",
             "worker_id.required" => "يجب أدخال العاملةالمراد بيعها",
@@ -114,8 +114,9 @@ class ActionController extends Controller
             "request_type" => $request["request_type"], // daily ,weekly ,monthly ,yearly
             "price" => $request["price"],
             "remainder_price" => $request["remainder_price"],
-            "received_price" => $request["price"] - $request["remainder_price"],
-            "status" => 0
+            "received_price" => $request["received_price"],
+            "status" => 0,
+            "note" => $request["note"] ?? null,
         ];
         $worker =  Worker::find($request["worker_id"]);
         if ($worker->status == 1) {
@@ -140,14 +141,19 @@ class ActionController extends Controller
         $validator = Validator::make($request, [
             "type" => "required",
             "employee_id" => $request["type"] == 0 ? "required|exists:employees,id" : "",
+            "worker_id" => $request["type"] == 1 ? "required|exists:workers,id" : "",
             "value" => "required",
-            "note" => $request["type"] == 1 ? "required" : ""
+            "note" => $request["type"] == 2 ? "required" : "",
+            "date" => "required"
         ], [
             "type.required" => "يجب تحديد نوع عملية السحب",
             "employee_id.exists" => "الموظف الذي قمت بأختياره غير متوفر",
             "employee_id.required" => "يجب أدخال الموظف",
+            "worker_id.exists" => "العاملة الذي قمت بأختياره غير متوفر",
+            "worker_id.required" => "يجب أدخال العاملة",
             "value.required" => "يجب ادخال قيمة السحب",
-            "note.required" => "يجب ادخال تفاصيل عملية السحب"
+            "note.required" => "يجب ادخال تفاصيل عملية السحب",
+            "date.required" => "يجب ادخال تأريخ عملية السحب"
         ]);
         if ($validator->fails()) {
             return $this->send_response(400, 'حصل خطأ في المدخلات', $validator->errors(), []);
@@ -155,15 +161,19 @@ class ActionController extends Controller
         $data = [];
         $data = [
             "value" => $request["value"],
-            "note" => $request["type"] == 0 ? "سحب اموال موظف" : $request["note"],
+            "note" => $request["note"] ?? null,
             "log_type" => 1,
-            "target_id" => $request["type"] == 0 ? $request["employee_id"] : null
+            "date" => $request["date"]
         ];
-      
+        if ($request["type"] == 0) {
+            $data["target_id"] = $request["employee_id"];
+        } else if ($request["type"] == 1) {
+            $data["target_id"] = $request["worker_id"];
+        }
+
         $log = Log::create($data);
         return $this->send_response(200, "تم عملية  سحب أموال بنجاح", [], Log::find($log->id));
     }
-
     public function workerRecovery(Request $request)
     {
         $request = $request->json()->all();
@@ -202,5 +212,39 @@ class ActionController extends Controller
         ];
         $log = Log::create($data);
         return $this->send_response(200, "تم استرجاع العاملة", [], Import::with("worker")->find($request["sale_id"]));
+    }
+    public function editSale(Request $request)
+    {
+        $request = $request->json()->all();
+        $validator = Validator::make($request, [
+            "sale_id" => "required|exists:imports,id",
+            "customer_name" => "required",
+            "worker_id" => "required|exists:workers,id",
+            "request_type" => "required",
+            "price" => "required",
+            "remainder_price" => "required",
+        ], [
+            "customer_name.required" => "يجب أدخال اسم الزبون",
+            "worker_id.required" => "يجب أدخال العاملةالمراد بيعها",
+            "worker_id.exists" => "العاملة التي قمت بأدخالها غير متوفرة",
+            "request_type.required" => "يجب تحديد نوع العملية ",
+            "price.required" => "يجب تحديد سعر البيع",
+            "remainder_price.required" => "يجب ادخال السعر الواصل ",
+        ]);
+        if ($validator->fails()) {
+            return $this->send_response(400, 'حصل خطأ في المدخلات', $validator->errors(), []);
+        }
+        $sale = Import::find($request["sale_id"]);
+        $sale->update([
+            "customer_name" => $request["customer_name"],
+            "worker_id" => $request["worker_id"],
+            "request_type" => $request["request_type"], // daily ,weekly ,monthly ,yearly
+            "price" => $request["price"],
+            "remainder_price" => $request["remainder_price"],
+            "received_price" => $request["received_price"],
+            "status" => 0,
+            "note" => $request["note"] ?? null,
+        ]);
+        return $this->send_response(200, 'تم تعديل معلومات البيع  بنجاح', [], Import::with('worker')->find($sale->id));
     }
 }

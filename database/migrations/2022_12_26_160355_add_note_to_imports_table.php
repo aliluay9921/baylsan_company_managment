@@ -13,14 +13,8 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('logs', function (Blueprint $table) {
-            $table->uuid("id")->primary();
-            $table->uuid("target_id")->nullable();
-            $table->integer("log_type"); // 0 سحب 1 أضافة
-            $table->double("value");
+        Schema::table('imports', function (Blueprint $table) {
             $table->text("note")->nullable();
-            $table->date("date");
-            $table->timestamps();
         });
     }
 
@@ -31,6 +25,8 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('logs');
+        Schema::table('imports', function (Blueprint $table) {
+            //
+        });
     }
 };

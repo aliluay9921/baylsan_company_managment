@@ -12,6 +12,7 @@ class Worker extends Model
     use HasFactory, Uuids, SoftDeletes;
     protected $guarded = [];
     protected $dates = ["deleted_at"];
+    protected $appends = ["cashing"];
 
 
     public function imports()
@@ -21,5 +22,10 @@ class Worker extends Model
     public function logs()
     {
         return $this->hasMany(Log::class, 'target_id');
+    }
+
+    public function getCashingAttribute()
+    {
+        return Log::where("target_id", $this->id)->sum("value");
     }
 }

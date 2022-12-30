@@ -13,13 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('logs', function (Blueprint $table) {
+        Schema::create('guarantees', function (Blueprint $table) {
             $table->uuid("id")->primary();
-            $table->uuid("target_id")->nullable();
-            $table->integer("log_type"); // 0 سحب 1 أضافة
-            $table->double("value");
-            $table->text("note")->nullable();
-            $table->date("date");
+            $table->string("customer_name");
+            $table->uuid("worker_id");
+            $table->string("finger_print_intelligence"); // بصمة مخابرات
+            $table->string("book_work"); //دفتر عمل
+            $table->text("note"); //دفتر عمل
             $table->timestamps();
         });
     }
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('logs');
+        Schema::dropIfExists('guarantees');
     }
 };
