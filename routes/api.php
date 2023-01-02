@@ -34,6 +34,7 @@ route::middleware("auth:api")->group(function () {
     route::get("get_logs", [ActionController::class, "getLogs"]);
     route::get("get_sale_process_workers", [ActionController::class, "getSaleProcessWorkers"]);
     route::get("show_actions_worker", [WoekerController::class, "showActionsWorker"]);
+    route::get("get_statistics",[ActionController::class,"getStatistics"]);
 
     route::post("sale_process_worker", [ActionController::class, "saleProcessWorker"]);
     route::post("withdraw_from_box", [ActionController::class, "withdrawFromBox"]);

@@ -11,7 +11,7 @@ use App\Traits\SendResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
-
+use Carbon\Carbon;
 class ActionController extends Controller
 {
     use SendResponse, Pagination;
@@ -53,6 +53,26 @@ class ActionController extends Controller
             $_GET['limit'] = 10;
         $res = $this->paging($logs->orderBy("created_at", "desc"),  $_GET['skip'],  $_GET['limit']);
         return $this->send_response(200, 'تم جلب النشاطات  بنجاح', [], $res["model"], null, $res["count"]);
+    }
+
+    public function getStatistics(){
+       $result=[];
+       $workers_available=Worker::where("status",0)->count();
+       $all_workers=Worker::where("status",1)->count();
+       $sales_day=Log::where("log_type",0)->where("date",Carbon::now()->format('Y-m-d'))->sum("value");
+       $sales_month=Log::where("log_type",0)->whereBetween("date", [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->sum("value");
+       $withdraw_day=Log::where("log_type",1)->where("date",Carbon::now()->format('Y-m-d'))->sum("value");
+       $withdraw_month=Log::where("log_type",1)->whereBetween("date", [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->sum("value");
+       $result=[
+           "worker_available"=> $workers_available,
+           "all_workers"=> $all_workers,
+           "sales_day"=> $sales_day,
+           "sales_month"=> $sales_month,
+           "withdraw_day"=> $withdraw_day,
+           "withdraw_month"=> $withdraw_month,
+       ]; 
+    return $this->send_response(200, 'تم جلب الاحصائيات بنجاح', [], $result);
+
     }
     public function getSaleProcessWorkers()
     {
@@ -127,7 +147,8 @@ class ActionController extends Controller
             "target_id" => $request["worker_id"],
             "log_type" => 0,
             "value" => $request["remainder_price"],
-            "note" => "تم عملية شراء عاملة"
+            "note" => "تم عملية شراء عاملة",
+            "date"=>Carbon::now()->format('Y-m-d')
         ]);
 
         $worker->update([
@@ -208,7 +229,8 @@ class ActionController extends Controller
             "value" => $request["value"],
             "note" => $request["note"],
             "log_type" => 1,
-            "target_id" => $request["worker_id"]
+            "target_id" => $request["worker_id"],
+             "date"=>Carbon::now()->format('Y-m-d')
         ];
         $log = Log::create($data);
         return $this->send_response(200, "تم استرجاع العاملة", [], Import::with("worker")->find($request["sale_id"]));
@@ -235,16 +257,24 @@ class ActionController extends Controller
             return $this->send_response(400, 'حصل خطأ في المدخلات', $validator->errors(), []);
         }
         $sale = Import::find($request["sale_id"]);
+         Log::create([
+            "target_id" => $request["worker_id"],
+            "log_type" => 0,
+            "value" =>  $request["remainder_price"] - $sale->remainder_price,
+            "note" => "تم التعديل على عملية شراء عاملة",
+            "date"=>Carbon::now()->format('Y-m-d')
+        ]);
         $sale->update([
             "customer_name" => $request["customer_name"],
             "worker_id" => $request["worker_id"],
             "request_type" => $request["request_type"], // daily ,weekly ,monthly ,yearly
             "price" => $request["price"],
-            "remainder_price" => $request["remainder_price"],
+            "remainder_price" => $request["remainder_price"], // القيمة المستلمة
             "received_price" => $request["received_price"],
             "status" => 0,
             "note" => $request["note"] ?? null,
         ]);
+        
         return $this->send_response(200, 'تم تعديل معلومات البيع  بنجاح', [], Import::with('worker')->find($sale->id));
     }
 }
