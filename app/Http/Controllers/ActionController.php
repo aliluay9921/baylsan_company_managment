@@ -58,14 +58,14 @@ class ActionController extends Controller
     public function getStatistics(){
        $result=[];
        $workers_available=Worker::where("status",0)->count();
-       $all_workers=Worker::where("status",1)->count();
+       $buys_workers=Worker::where("status",1)->count();
        $sales_day=Log::where("log_type",0)->where("date",Carbon::now()->format('Y-m-d'))->sum("value");
        $sales_month=Log::where("log_type",0)->whereBetween("date", [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->sum("value");
        $withdraw_day=Log::where("log_type",1)->where("date",Carbon::now()->format('Y-m-d'))->sum("value");
        $withdraw_month=Log::where("log_type",1)->whereBetween("date", [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->sum("value");
        $result=[
            "worker_available"=> $workers_available,
-           "all_workers"=> $all_workers,
+           "buys_workers"=> $buys_workers,
            "sales_day"=> $sales_day,
            "sales_month"=> $sales_month,
            "withdraw_day"=> $withdraw_day,
