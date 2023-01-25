@@ -56,7 +56,7 @@ class WoekerController extends Controller
     {
         $request = $request->json()->all();
         $validator = Validator::make($request, [
-            "full_name" => 'required',
+            "full_name" => 'required|unique:workers,full_name',
             'age' => 'required',
             'passport_no' => 'required',
             'visa_number' => 'required',
@@ -65,6 +65,7 @@ class WoekerController extends Controller
             'date_issuance_visa' => 'required',
         ], [
             'full_name.required' => ' يرجى ادخال اسم العاملة ',
+            'full_name.unique' => ' اسم العاملة تم تكراره',
             'age.required' => 'يرجى أدخال عمر العاملة',
             'passport_no.required' => 'يرجى أدخال رقم الجواز الخاص بالعاملة',
             'visa_number.required' => 'يرجى أدخال رقم الفيزا الخاص بالعاملة',
